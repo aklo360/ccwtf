@@ -428,12 +428,8 @@ function CoinFlipGame({ networkConfig }: { networkConfig: NetworkConfig }) {
           <span className="text-claude-orange font-semibold text-sm">
             CC Flip
           </span>
-          {/* Network Badge */}
-          {networkConfig.isMainnet ? (
-            <span className="bg-accent-green text-black text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase">
-              Mainnet
-            </span>
-          ) : (
+          {/* Network Badge - only show on devnet */}
+          {!networkConfig.isMainnet && (
             <span className="bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase">
               Devnet
             </span>
@@ -561,14 +557,6 @@ function CoinFlipGame({ networkConfig }: { networkConfig: NetworkConfig }) {
             <span>Secure escrow • You sign deposits • Provably fair</span>
           </div>
 
-          {/* Debug Panel */}
-          <div className="mt-4 p-2 bg-bg-primary border border-border rounded text-[10px] font-mono text-text-muted">
-            <div>Network: {networkConfig.isMainnet ? 'MAINNET' : 'DEVNET'}</div>
-            <div>Mint: {networkConfig.ccMint.toBase58().slice(0, 8)}...</div>
-            <div>RPC: {connection.rpcEndpoint.includes('mainnet') ? 'mainnet' : connection.rpcEndpoint.includes('devnet') ? 'devnet' : 'unknown'}</div>
-            <div>Balance: {balanceLoading ? 'loading...' : balanceError ? 'ERROR' : `${balance.toLocaleString()} $CC`}</div>
-            <div>Wallet: {publicKey ? publicKey.toBase58().slice(0, 8) + '...' : 'not connected'}</div>
-          </div>
         </div>
 
         {/* Provably Fair - Show commitment info */}

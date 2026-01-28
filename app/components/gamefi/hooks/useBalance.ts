@@ -60,7 +60,8 @@ export function useBalance(): Balance {
         console.log('[useBalance] Using mint:', ccMint.toBase58());
         console.log('[useBalance] RPC endpoint:', connection.rpcEndpoint);
         const tokenAccount = await getAccount(connection, ata);
-        const ccBalance = Number(tokenAccount.amount) / 1_000_000_000;
+        // $CC has 6 decimals, not 9
+        const ccBalance = Number(tokenAccount.amount) / 1_000_000;
         console.log('[useBalance] $CC balance:', ccBalance, '(raw:', tokenAccount.amount.toString(), ')');
         setCc(ccBalance);
       } catch (err) {

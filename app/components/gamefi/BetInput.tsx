@@ -114,7 +114,7 @@ export function BetInput({
 
       <div className="flex justify-between text-xs text-text-muted">
         <span>Min: {min.toLocaleString()} $CC</span>
-        <span>Max: {max.toLocaleString()} $CC</span>
+        <span>Max: {Math.min(max, Math.floor(balance)).toLocaleString()} $CC</span>
       </div>
     </div>
   );
