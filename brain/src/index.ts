@@ -534,15 +534,21 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   // Experiment control endpoint
   // /experiment is the primary endpoint (Brain 2.0)
   // /go and /gamefi/go are kept as aliases for backwards compatibility
-  if ((url === '/experiment' || url === '/go' || url === '/gamefi/go') && method === 'POST') {
+  // Check if URL matches experiment endpoints (with or without query params)
+  const urlPath = url.split('?')[0];
+  if ((urlPath === '/experiment' || urlPath === '/go' || urlPath === '/gamefi/go') && method === 'POST') {
+    // Parse URL for force flag
+    const urlObj = new URL(url, `http://localhost:${PORT}`);
+    const force = urlObj.searchParams.get('force') === 'true';
+
     if (getActiveCycle()) {
       sendJson(res, 409, { error: 'Experiment already in progress', status: getCycleStatus() });
       return;
     }
 
-    // Check cooldown
+    // Check cooldown (skip if force=true)
     const cooldownMs = getTimeUntilNextAllowed();
-    if (cooldownMs > 0) {
+    if (cooldownMs > 0 && !force) {
       const hours = Math.floor(cooldownMs / (1000 * 60 * 60));
       const minutes = Math.floor((cooldownMs % (1000 * 60 * 60)) / (1000 * 60));
       sendJson(res, 429, {
@@ -550,6 +556,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
         cooldown_remaining_ms: cooldownMs,
         cooldown_remaining: `${hours}h ${minutes}m`,
         next_allowed_at: new Date(Date.now() + cooldownMs).toISOString(),
+        hint: 'Use ?force=true to bypass cooldown',
       });
       return;
     }
@@ -561,7 +568,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     pauseGrindLoop();
 
     // Start experiment asynchronously (non-blocking)
-    startExperiment()
+    startExperiment({ force })
       .then((result) => {
         if (result && result.deployUrl) {
           console.log(`✅ Experiment deployed: ${result.plan.experiment.slug}`);

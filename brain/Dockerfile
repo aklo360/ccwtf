@@ -1,8 +1,9 @@
 FROM node:22-slim
 
-# Install git, CA certificates (for HTTPS), Chromium for Puppeteer, and emoji fonts
+# Install git, SSH, CA certificates (for HTTPS), Chromium for Puppeteer, and emoji fonts
 RUN apt-get update && apt-get install -y \
     git \
+    openssh-client \
     ca-certificates \
     chromium \
     fonts-liberation \
@@ -37,6 +38,9 @@ COPY package*.json ./
 
 # Install dependencies (including native modules like better-sqlite3)
 RUN npm ci
+
+# Install Claude CLI globally for the builder
+RUN npm install -g @anthropic-ai/claude-code
 
 # Copy source code
 COPY . .

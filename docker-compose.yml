@@ -17,6 +17,9 @@ services:
       - "127.0.0.1:3001:3001"
     env_file:
       - ./brain/.env
+    environment:
+      # Set HOME so git/ssh can find configs
+      - HOME=/Users/claude
     volumes:
       # Database uses DB_PATH env var pointing to /Users/claude/ccwtf/brain/brain.db (via mounted ccwtf dir)
       # This ensures host and container share the same WAL files
@@ -30,6 +33,8 @@ services:
       - /Users/claude/ccwtf:/Users/claude/ccwtf
       # Mount git config for authentication
       - /Users/claude/.gitconfig:/Users/claude/.gitconfig:ro
+      # Mount SSH keys for git push
+      - /Users/claude/.ssh:/Users/claude/.ssh:ro
       # Mount Solana wallet for GameFi transactions
       - /Users/claude/.config/solana:/data/wallet:ro
     networks:
