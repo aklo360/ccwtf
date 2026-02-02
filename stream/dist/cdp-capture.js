@@ -76,8 +76,8 @@ export class CdpCapture {
         // Navigate to the target URL
         console.log(`[cdp] Navigating to ${this.config.url}`);
         await this.page.goto(this.config.url, {
-            waitUntil: 'networkidle2',
-            timeout: 60000, // 60s for cold starts after launchd restart
+            waitUntil: 'domcontentloaded', // Changed from networkidle2 for sites with continuous activity
+            timeout: 120000, // 120s for sites with heavy initial load
         });
         // Hide scrollbars
         await this.page.evaluate(() => {

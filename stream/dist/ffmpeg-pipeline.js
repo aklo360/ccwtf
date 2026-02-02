@@ -29,12 +29,18 @@ export class FfmpegPipeline {
         if (this.isRunning) {
             throw new Error('Pipeline already running');
         }
-        const hasAudio = this.config.audioUrl !== null;
+        const noAudio = this.config.audioUrl === 'none';
+        const hasExternalAudio = this.config.audioUrl !== null && this.config.audioUrl !== 'none';
         const args = [];
         // Input: MJPEG frames from Chrome CDP screencast via stdin
         args.push('-f', 'mjpeg', '-framerate', String(this.config.fps), '-i', 'pipe:0');
         // Audio input
-        if (hasAudio) {
+        if (noAudio) {
+            // Generate silent audio (required by some platforms like Twitter)
+            console.log('[ffmpeg] Generating silent audio for compatibility');
+            args.push('-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo');
+        }
+        else if (hasExternalAudio) {
             // YouTube live stream with reconnect options for reliability
             args.push('-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-i', this.config.audioUrl);
         }
@@ -47,8 +53,8 @@ export class FfmpegPipeline {
         // Video encoding: libx264 software encoder (YouTube compatible)
         args.push('-vf', `scale=${this.config.width}:${this.config.height}`, '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-b:v', this.config.bitrate, '-maxrate', '6000k', '-bufsize', '12000k', '-pix_fmt', 'yuv420p', '-g', String(this.config.fps * 2), // Keyframe every 2 seconds
         '-profile:v', 'high', '-level', '4.1');
-        // Audio encoding
-        args.push('-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-map', '0:v', '-map', '1:a');
+        // Audio encoding and stream mapping
+        args.push('-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100');
         // Global header flag - REQUIRED for tee muxer with FLV/RTMP
         args.push('-flags', '+global_header');
         // Output: direct RTMP or tee muxer for multiple destinations
@@ -57,13 +63,13 @@ export class FfmpegPipeline {
         }
         else {
             // Extract URL from tee format: [f=flv]rtmp://... -> rtmp://...
-            const rtmpUrl = this.config.teeOutput.replace(/^\[f=flv\]/, '');
+            const rtmpUrl = this.config.teeOutput.replace(/^\[f=flv(:onfail=ignore)?\]/, '');
             args.push('-f', 'flv', rtmpUrl);
         }
         console.log('[ffmpeg] Starting pipeline...');
         console.log('[ffmpeg] Mode: CDP screencast → MJPEG stdin → libx264 H.264');
         console.log(`[ffmpeg] Resolution: ${this.config.width}x${this.config.height}@${this.config.fps}fps`);
-        console.log(`[ffmpeg] Audio: ${hasAudio ? 'YouTube stream' : 'lofi fallback (looped)'}`);
+        console.log(`[ffmpeg] Audio: ${noAudio ? 'silent (generated)' : hasExternalAudio ? 'YouTube stream' : 'lofi fallback (looped)'}`);
         console.log(`[ffmpeg] Output: ${this.config.teeOutput}`);
         this.process = spawn('ffmpeg', args, {
             stdio: ['pipe', 'pipe', 'pipe'],

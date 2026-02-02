@@ -19,7 +19,7 @@ export interface PipelineConfig {
   height: number;
   fps: number;
   bitrate: string;
-  audioUrl: string | null; // null = use lofi fallback
+  audioUrl: string | null; // null = use lofi fallback, 'none' = no audio
   teeOutput: string; // FFmpeg tee muxer output string
 }
 
@@ -49,7 +49,8 @@ export class FfmpegPipeline {
       throw new Error('Pipeline already running');
     }
 
-    const hasAudio = this.config.audioUrl !== null;
+    const noAudio = this.config.audioUrl === 'none';
+    const hasExternalAudio = this.config.audioUrl !== null && this.config.audioUrl !== 'none';
     const args: string[] = [];
 
     // Input: MJPEG frames from Chrome CDP screencast via stdin
@@ -60,7 +61,11 @@ export class FfmpegPipeline {
     );
 
     // Audio input
-    if (hasAudio) {
+    if (noAudio) {
+      // Generate silent audio (required by some platforms like Twitter)
+      console.log('[ffmpeg] Generating silent audio for compatibility');
+      args.push('-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo');
+    } else if (hasExternalAudio) {
       // YouTube live stream with reconnect options for reliability
       args.push(
         '-reconnect', '1',
@@ -93,13 +98,13 @@ export class FfmpegPipeline {
       '-level', '4.1',
     );
 
-    // Audio encoding
+    // Audio encoding and stream mapping
     args.push(
+      '-map', '0:v',
+      '-map', '1:a',
       '-c:a', 'aac',
       '-b:a', '128k',
       '-ar', '44100',
-      '-map', '0:v',
-      '-map', '1:a',
     );
 
     // Global header flag - REQUIRED for tee muxer with FLV/RTMP
@@ -110,14 +115,14 @@ export class FfmpegPipeline {
       args.push('-f', 'tee', this.config.teeOutput);
     } else {
       // Extract URL from tee format: [f=flv]rtmp://... -> rtmp://...
-      const rtmpUrl = this.config.teeOutput.replace(/^\[f=flv\]/, '');
+      const rtmpUrl = this.config.teeOutput.replace(/^\[f=flv(:onfail=ignore)?\]/, '');
       args.push('-f', 'flv', rtmpUrl);
     }
 
     console.log('[ffmpeg] Starting pipeline...');
     console.log('[ffmpeg] Mode: CDP screencast → MJPEG stdin → libx264 H.264');
     console.log(`[ffmpeg] Resolution: ${this.config.width}x${this.config.height}@${this.config.fps}fps`);
-    console.log(`[ffmpeg] Audio: ${hasAudio ? 'YouTube stream' : 'lofi fallback (looped)'}`);
+    console.log(`[ffmpeg] Audio: ${noAudio ? 'silent (generated)' : hasExternalAudio ? 'YouTube stream' : 'lofi fallback (looped)'}`);
     console.log(`[ffmpeg] Output: ${this.config.teeOutput}`);
 
     this.process = spawn('ffmpeg', args, {

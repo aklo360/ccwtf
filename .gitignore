@@ -45,3 +45,4 @@ video/node_modules/
 video/out/
 video/public/footage/
 stream/cookies.txt
+stream/*.log

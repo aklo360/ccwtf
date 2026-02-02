@@ -45,7 +45,7 @@ export interface StreamerStats {
     lastError: string | null;
     currentScene: 'watch' | 'vj';
     schedule: ScheduleInfo | null;
-    audioSource: 'youtube' | 'fallback';
+    audioSource: 'youtube' | 'fallback' | 'none';
     youtubeUrlTtl: number;
 }
 export declare class Streamer extends EventEmitter {
@@ -65,6 +65,7 @@ export declare class Streamer extends EventEmitter {
     private audioRefreshInterval;
     private watchdogInterval;
     private usingFallbackAudio;
+    private audioDisabled;
     private lastFrameTime;
     private consecutiveEmptyPages;
     private static readonly RESTART_RESET_AFTER_MS;
@@ -77,7 +78,7 @@ export declare class Streamer extends EventEmitter {
     constructor(config: StreamerConfig);
     start(): Promise<void>;
     /**
-     * Get audio source - try YouTube first, fallback to local
+     * Get audio source - try YouTube first, fallback to local, or disable entirely
      */
     private getAudioSource;
     stop(): Promise<void>;

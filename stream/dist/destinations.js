@@ -40,6 +40,17 @@ export function loadDestinations() {
             enabled: true,
         });
     }
+    // PumpFun (LiveKit RTMPS)
+    const pumpfunUrl = process.env.RTMP_PUMPFUN_URL || '';
+    const pumpfunKey = process.env.RTMP_PUMPFUN_KEY || '';
+    if (pumpfunUrl && pumpfunKey) {
+        destinations.push({
+            name: 'PumpFun',
+            url: pumpfunUrl,
+            key: pumpfunKey,
+            enabled: true,
+        });
+    }
     // Build tee muxer output string for FFmpeg
     // Format: "[f=flv:onfail=ignore]rtmp://url/key|[f=flv:onfail=ignore]rtmp://url2/key2"
     // onfail=ignore allows other streams to continue if one destination fails

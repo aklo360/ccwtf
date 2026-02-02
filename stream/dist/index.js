@@ -23,7 +23,7 @@ const PORT = parseInt(process.env.PORT || '3002', 10);
 const WATCH_URL = process.env.WATCH_URL || 'https://claudecode.wtf/watch?lite=1';
 const VJ_URL = process.env.VJ_URL || 'https://claudecode.wtf/vj?engine=hydra&mode=auto&hideUI=true';
 const BRAIN_URL = process.env.BRAIN_URL || 'https://brain.claudecode.wtf';
-const YOUTUBE_AUDIO_URL = process.env.YOUTUBE_AUDIO_URL || 'https://www.youtube.com/watch?v=jfKfPfyJRdk';
+const YOUTUBE_AUDIO_URL = process.env.YOUTUBE_AUDIO_URL || 'none';
 const STREAM_WIDTH = parseInt(process.env.STREAM_WIDTH || '1280', 10);
 const STREAM_HEIGHT = parseInt(process.env.STREAM_HEIGHT || '720', 10);
 const STREAM_FPS = parseInt(process.env.STREAM_FPS || '30', 10);

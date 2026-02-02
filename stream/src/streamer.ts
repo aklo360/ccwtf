@@ -55,7 +55,7 @@ export interface StreamerStats {
   lastError: string | null;
   currentScene: 'watch' | 'vj';
   schedule: ScheduleInfo | null;
-  audioSource: 'youtube' | 'fallback';
+  audioSource: 'youtube' | 'fallback' | 'none';
   youtubeUrlTtl: number;
 }
 
@@ -77,6 +77,7 @@ export class Streamer extends EventEmitter {
   private audioRefreshInterval: NodeJS.Timeout | null = null;
   private watchdogInterval: NodeJS.Timeout | null = null;
   private usingFallbackAudio: boolean = false;
+  private audioDisabled: boolean = false;
   private lastFrameTime: number = 0;
   private consecutiveEmptyPages: number = 0;
 
@@ -171,7 +172,7 @@ export class Streamer extends EventEmitter {
       this.lastFrameTime = Date.now();
       this.setState('streaming');
       console.log('[streamer] Stream is live!');
-      console.log(`[streamer] Audio source: ${this.usingFallbackAudio ? 'LOCAL FALLBACK' : 'YouTube lofi'}`);
+      console.log(`[streamer] Audio source: ${this.audioDisabled ? 'DISABLED (video only)' : this.usingFallbackAudio ? 'LOCAL FALLBACK' : 'YouTube lofi'}`);
 
       // Reset restart counter after stable streaming for 5 minutes
       this.restartResetTimer = setTimeout(() => {
@@ -194,14 +195,23 @@ export class Streamer extends EventEmitter {
   }
 
   /**
-   * Get audio source - try YouTube first, fallback to local
+   * Get audio source - try YouTube first, fallback to local, or disable entirely
    */
   private async getAudioSource(): Promise<string | null> {
+    // Check if audio is disabled
+    if (this.config.youtubeAudioUrl === 'none' || !this.config.youtubeAudioUrl) {
+      console.log('[streamer] Audio disabled - video only stream');
+      this.audioDisabled = true;
+      this.usingFallbackAudio = false;
+      return 'none';
+    }
+
     try {
       const audioUrl = await getYouTubeAudioUrl();
       if (audioUrl) {
         console.log('[streamer] Using YouTube lofi stream audio');
         this.usingFallbackAudio = false;
+        this.audioDisabled = false;
         return audioUrl;
       }
     } catch (error) {
@@ -210,6 +220,7 @@ export class Streamer extends EventEmitter {
 
     console.log('[streamer] Using local lofi fallback audio');
     this.usingFallbackAudio = true;
+    this.audioDisabled = false;
     return null; // FFmpeg pipeline will use local file
   }
 
@@ -492,7 +503,7 @@ export class Streamer extends EventEmitter {
       lastError: this.lastError,
       currentScene: this.director?.getScene() ?? 'watch',
       schedule: this.director?.getScheduleInfo() ?? null,
-      audioSource: this.usingFallbackAudio ? 'fallback' : 'youtube',
+      audioSource: this.audioDisabled ? 'none' : (this.usingFallbackAudio ? 'fallback' : 'youtube'),
       youtubeUrlTtl: getUrlTtl(),
     };
   }
